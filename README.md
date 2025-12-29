@@ -9,7 +9,15 @@ Server
 
 ```json
 {
-  "executable": "GameExecutable.exe"
+  "short": "Short Name",
+  "description": "Full description goes here. Basic <b>HTML</b> works.",
+  "executable_linux": "executable_linux",
+  "execuatble_windows": "execuatble_windows.exe",
+  "version": "0.0.0",
+  "thumbnail": "thumb.png",
+  "screenshots": ["ss1.png", "ss2.png"],
+  "genres": ["Genre, tags"],
+  "requirements": "Reqs"
 }
 ```
 
