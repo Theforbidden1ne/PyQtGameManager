@@ -215,3 +215,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+server/games 
+server/*.json
+server/bin/*
