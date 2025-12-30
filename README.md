@@ -58,7 +58,7 @@ python3 client/app.py
 
 Dirsributing the client:
 
-** note, you HAVE to be on linux for this **
+**note, you HAVE to be on linux for this**
 
 Environment variable `GM_SERVER` can point the client to a different server URL (defaults to `http://localhost:5000`).
 
