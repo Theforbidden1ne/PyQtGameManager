@@ -71,6 +71,7 @@ Dirsributing the client:
 2. Run the build script
 
     - MAJOR WARNING: Doing this may break your packages, i did it and its fine but results may vary.
+    - Note: If you are on windows and have an MS-Store or vscode installation of python, you may be able to build with the `linux` build script
 
     `python3 buildClientWindows.py`
     or
