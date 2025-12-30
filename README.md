@@ -60,7 +60,28 @@ Dirsributing the client:
 
 - **note, you HAVE to be on linux for this**
 
-Environment variable `GM_SERVER` can point the client to a different server URL (defaults to `http://localhost:5000`).
+- Environment variable `GM_SERVER` can point the client to a different server URL (defaults to `http://localhost:5000` for testing).
+
+- Python variable `GM_SERVER` can also be changed for the same reason
+
+1. Clone this github repo
+
+    Run `git clone reponame && cd reponame`
+
+2. Run the build script
+
+    - MAJOR WARNING: Doing this may break your packages, i did it and its fine but results may vary.
+
+    `python3 buildClientWindows.py`
+    or
+    `python3 buildClientLinux.py`
+
+3. Run the post script.
+    
+     This will move the clients into the correct directory for the website to send the download
+
+    `python3 postClients.py`
+
 
 Config file: `~/.gamemanager/config.json` stores `server`, `token`, `username`, and `theme`.
 
@@ -74,6 +95,7 @@ docker run --rm -p 5000:5000 -v $(pwd)/server/games:/app/server/games gamemanage
 Tests
 - Quick smoke test (requires server running locally):
 
+```
 ```bash
 pip install -r requirements.txt
 pytest -q tests/test_server_basic.py
