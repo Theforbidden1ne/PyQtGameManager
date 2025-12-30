@@ -66,7 +66,7 @@ Dirsributing the client:
 
 1. Clone this github repo
 
-    Run `git clone reponame && cd reponame`
+    Run `git clone https://github.com/Theforbidden1ne/PyQtGameManager && cd PyQtGameManager`
 
 2. Run the build script
 
