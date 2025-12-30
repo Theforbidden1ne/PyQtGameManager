@@ -400,9 +400,63 @@ class MainWindow(QtWidgets.QMainWindow):
         # support resume: check existing size
         existing = local_zip.stat().st_size if local_zip.exists() else 0
 
-        # If we have partial file, request Range
+        # If we have partial file, probe remote to discover total size and avoid invalid ranges
         if existing > 0:
-            headers['Range'] = f'bytes={existing}-'
+            try:
+                probe = requests.get(url, headers={**headers, 'Range': 'bytes=0-0'}, timeout=10)
+                # If server responds with 206, Content-Range gives total
+                if probe.status_code == 206 and 'Content-Range' in probe.headers:
+                    try:
+                        total = int(probe.headers.get('Content-Range').split('/')[1])
+                    except Exception:
+                        total = None
+                    if total is not None and existing >= total:
+                        # already fully downloaded
+                        self.log_msg('Local file already complete; verifying...')
+                        # verify checksum like below
+                        try:
+                            rc = requests.get(f'{self.server}/checksum/{name}', timeout=5, headers={'Authorization': f'Bearer {self.token}'})
+                            if rc.status_code == 200:
+                                remote_sum = rc.json().get('sha256')
+                                import hashlib as _hash
+                                h = _hash.sha256()
+                                with open(local_zip, 'rb') as fh:
+                                    for chunk in iter(lambda: fh.read(8192), b''):
+                                        h.update(chunk)
+                                local_sum = h.hexdigest()
+                                if remote_sum and local_sum == remote_sum:
+                                    self.log_msg('Checksum OK; extracting')
+                                    self.extract_zip(name, local_zip)
+                                    self.refresh_library()
+                                    return
+                        except Exception:
+                            pass
+                        # not verified; fall through to re-download
+                elif probe.status_code == 416:
+                    # server says range not satisfiable -> likely local file equals remote
+                    self.log_msg('Server returned 416 for probe; treating file as complete and verifying')
+                    try:
+                        rc = requests.get(f'{self.server}/checksum/{name}', timeout=5, headers={'Authorization': f'Bearer {self.token}'})
+                        if rc.status_code == 200:
+                            remote_sum = rc.json().get('sha256')
+                            import hashlib as _hash
+                            h = _hash.sha256()
+                            with open(local_zip, 'rb') as fh:
+                                for chunk in iter(lambda: fh.read(8192), b''):
+                                    h.update(chunk)
+                            local_sum = h.hexdigest()
+                            if remote_sum and local_sum == remote_sum:
+                                self.log_msg('Checksum OK; extracting')
+                                self.extract_zip(name, local_zip)
+                                self.refresh_library()
+                                return
+                    except Exception:
+                        pass
+                # otherwise we will request a range from existing
+                headers['Range'] = f'bytes={existing}-'
+            except Exception:
+                # probe failed; attempt resume anyway
+                headers['Range'] = f'bytes={existing}-'
 
         try:
             with requests.get(url, stream=True, timeout=30, headers=headers) as r:
@@ -591,10 +645,29 @@ class MainWindow(QtWidgets.QMainWindow):
             self.log_msg('Game not installed. Please download first.')
             return
         meta = self.read_meta(name)
-        exe = meta.get('executable')
+        # support multiple executable keys: generic or per-platform
+        system = platform.system().lower()
+        exe = None
+        # prefer explicit generic key
+        if 'executable' in meta and meta.get('executable'):
+            exe = meta.get('executable')
+            used_key = 'executable'
+        else:
+            if system == 'windows':
+                exe = meta.get('executable_windows') or meta.get('executable_win')
+                used_key = 'executable_windows' if exe else None
+            elif system == 'darwin':
+                exe = meta.get('executable_mac') or meta.get('executable_darwin')
+                used_key = 'executable_mac' if exe else None
+            else:
+                exe = meta.get('executable_linux') or meta.get('executable_unix')
+                used_key = 'executable_linux' if exe else None
+
         if not exe:
             self.log_msg('No executable specified in meta for', name)
             return
+        if used_key:
+            self.log_msg('Using executable from meta key', used_key, ':', exe)
         exe_path = target / exe
         if not exe_path.exists():
             self.log_msg('Executable not found at', exe_path)

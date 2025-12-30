@@ -1,3 +1,14 @@
 {
-  
+  "access": {
+    "4a6c6faa-24f5-478b-8083-50837f428640": {
+      "username": "Xtimhedi",
+      "expires": 1767065193
+    }
+  },
+  "refresh": {
+    "97a0360e-5732-4196-81ad-86994887a8da": {
+      "username": "Xtimhedi",
+      "expires": 1767666393
+    }
+  }
 }

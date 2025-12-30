@@ -199,6 +199,39 @@ def game_art_path(game_name: str, filename: str):
     return os.path.join(GAMES_DIR, game_name, filename)
 
 
+def normalize_meta(meta):
+    # Ensure meta is a dict and has canonical keys clients expect
+    if not isinstance(meta, dict):
+        meta = {'description': ''}
+    meta.setdefault('short', '')
+    meta.setdefault('description', '')
+    meta.setdefault('requirements', '')
+    meta.setdefault('version', '')
+    meta.setdefault('thumbnail', None)
+    meta.setdefault('screenshots', [])
+    # genres may be a comma-separated string in older metas
+    g = meta.get('genres', [])
+    if isinstance(g, str):
+        meta['genres'] = [x.strip() for x in g.split(',') if x.strip()]
+    else:
+        meta.setdefault('genres', [])
+    # normalize executable key variants and common misspellings
+    exe_key_alternatives = {
+        'executable': ['executable', 'exec', 'exe'],
+        'executable_windows': ['executable_windows', 'executable_win', 'execuatble_win', 'execuatble_windows', 'excutable_win', 'execuable_win'],
+        'executable_linux': ['executable_linux', 'executable_unix', 'execuatble_linux', 'excutable_linux'],
+        'executable_mac': ['executable_mac', 'executable_darwin', 'execuatble_mac']
+    }
+    for canon, alts in exe_key_alternatives.items():
+        if meta.get(canon):
+            continue
+        for a in alts:
+            if a in meta and meta.get(a):
+                meta[canon] = meta.get(a)
+                break
+    return meta
+
+
 @app.route('/art/<game_name>/<path:filename>')
 def serve_art(game_name, filename):
     # serve thumbnail or screenshot files from game folder
@@ -228,21 +261,7 @@ def list_games():
                     meta = json.load(f)
             except Exception:
                 meta = {'error': 'invalid meta'}
-        # normalize meta schema for clients
-        if not isinstance(meta, dict):
-            meta = {'description': ''}
-        meta.setdefault('short', '')
-        meta.setdefault('description', '')
-        meta.setdefault('requirements', '')
-        meta.setdefault('version', '')
-        meta.setdefault('thumbnail', None)
-        meta.setdefault('screenshots', [])
-        # genres may be a comma-separated string in older metas
-        g = meta.get('genres', [])
-        if isinstance(g, str):
-            meta['genres'] = [x.strip() for x in g.split(',') if x.strip()]
-        else:
-            meta.setdefault('genres', [])
+        meta = normalize_meta(meta)
         has_zip = os.path.isfile(game_zip_path(name))
         # collect artwork files if present
         thumb = meta.get('thumbnail')
@@ -267,7 +286,13 @@ def get_meta(game_name):
     meta_file = game_meta_path(game_name)
     if not os.path.isfile(meta_file):
         abort(404)
-    return send_from_directory(os.path.dirname(meta_file), os.path.basename(meta_file))
+    try:
+        with open(meta_file, 'r', encoding='utf-8') as f:
+            meta = json.load(f)
+    except Exception:
+        abort(500)
+    meta = normalize_meta(meta)
+    return jsonify(meta)
 
 
 @app.route('/download/<game_name>')

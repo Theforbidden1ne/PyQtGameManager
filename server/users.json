@@ -1,1 +1,10 @@
-{}
+{
+  "Xtimhedi": {
+    "pw": "cfedd947366bf5fb331d0786e088730791f87a0be288889175a3b006f79cabb4",
+    "salt": "d0f084a73e6a573994f4bc92dd6f9ed7",
+    "iterations": 100000,
+    "games": [
+      "TurboBuilder"
+    ]
+  }
+}
